@@ -14,9 +14,20 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
             Array.Reverse(charArray);
             return new string(charArray);
         }
+
+        //primeste ca parametrii sirul si t1,t2,t3,...indicele
+        public static void Emit(string sir, int count)
+        {
+            using (StreamWriter fisierout = new StreamWriter(@"C:\Users\Andreea Purta\source\repos\Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1\Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1\outFile.txt", true))
+            {
+                fisierout.WriteLine("t" + count + "=" + sir);
+            }
+        }
+
         static void Main(string[] args)
         {
             Stack stack = new Stack();
+            Stack attributeStrack = new Stack();
             string terminals = "";
             string nonterminals = "";
             var production = new List<(string, string)>();
@@ -28,7 +39,10 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
             int indexLine = 1;
             int indexCol = 0;
             string value = "";
-
+            string tempTerm = "";
+            int countForTs = 1;
+            List<int> complexProd = new List<int>();
+            List<int> finalProd = new List<int>();
             //citire fisier
             using (StreamReader fisier = new StreamReader(@"C:\Users\Andreea Purta\source\repos\Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1\Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1\TextFile.txt"))
             {
@@ -39,6 +53,26 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
                 {
                     string[] sirImpartit = fisier.ReadLine().Split(" ");
                     production.Add((sirImpartit[0], sirImpartit[1]));
+
+                    //Pt a afla care sunt productiile complexe
+                    int ct = 0;
+                    //sir impartit[1] = ceea ce am in partea dreapta, daca in partea dreapta am 2 neterminale atunci avem productie complexa
+                    for (int j = 0; j < nonterminals.Length; j++)
+                    {
+                        if (sirImpartit[1].Contains(nonterminals[j]))
+                        {
+                            ct++;
+                            if (ct == 2)
+                            {
+                                complexProd.Add(i + 1);
+                            }
+                        }
+                    }
+                    //aici aflu care sunt productiile care genereaza neterminal a pt ca astea se baga in stiva si nu se mai da pop la nimic.
+                    if (sirImpartit[1].Contains('a'))
+                    {
+                        finalProd.Add(i + 1);
+                    }
                 }
 
                 Int32.TryParse(fisier.ReadLine(), out linesTA);
@@ -102,6 +136,7 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
             bool acc = false;
             while (!acc)
             {
+
                 ///daca e int
                 if (stack.Peek().GetType() == typeof(int))
                 {
@@ -134,7 +169,14 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
                         //parcurgem stiva (Care am facut o array)
                         foreach (var item in stack.ToArray())
                         {
+                            //salvez semnul dintre o productie complexa  //am verificat daca in stiva avem litera si e terminala adica +*...
+                            if ((stack.Peek().GetType() == typeof(char) || item.GetType() == typeof(string)) && terminals.Contains(stack.Peek().ToString()))
+                            {
+                                tempTerm = stack.Peek().ToString();
+                            }
+
                             stack.Pop();
+
                             //daca in stiva e caracter atunci adaug in sir
                             if (item.GetType() == typeof(char) || item.GetType() == typeof(string))
                             {
@@ -146,6 +188,26 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
                                     break;
                                 }
                             }
+                        }
+                        //pune in stiva doar daca este productie finala adica cu terminal in capat  adica daca nu e complexa dau push
+                        //de cate ori e cuvant de intrare
+                        if (finalProd.Contains(int.Parse(value[1].ToString())))
+                        {
+                            attributeStrack.Push('a');
+                        }
+
+                        //daca e dubla, atunci trebe sa punem in striva 
+                        //scoatem in t1 si t2 ultimele 2 chestii din stiva 
+                        if (complexProd.Contains(int.Parse(value[1].ToString())))
+                        {
+                            var t1 = attributeStrack.Pop();
+                            var t2 = attributeStrack.Pop();
+                            var temp = t2 + tempTerm + t1;
+                            //scriu in fisier linia de cod generata 
+                            Emit(temp, countForTs);
+                            //pun pe stiva termenul anterior adaugat
+                            attributeStrack.Push("t" + countForTs);
+                            countForTs++;
                         }
 
                         var peek = (int)(stack.Peek());
@@ -164,12 +226,10 @@ namespace Tema_laborator_4_PurtaAndreea_Aftenie_Ana_231_1
                     stack.Push(nonterminals[auxCol]);
                     stack.Push(action);
                 }
+
             }
         }
-        //afisare stiva 
-        //Console.WriteLine("Amu  stiva");
-        //foreach (var item in stack)
-        //{ Console.Write(item + ","); }
+
     }
 }
 
